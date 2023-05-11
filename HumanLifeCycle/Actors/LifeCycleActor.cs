@@ -4,14 +4,22 @@ using HumanLifeCycle.Messages;
 namespace HumanLifeCycle.Actors;
 public class LifeCycleActor : ReceiveActor
 {
+    private ICancelable _scheduledTask;
     public LifeCycleActor()
     {
+        _scheduledTask = Context.System.Scheduler.ScheduleTellRepeatedlyCancelable(
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(2),
+            Self,
+            new ChangeLifePhase(),
+            Self);
+
 
         Receive<IMessage>(message => NewBornPhase(message));
 
     }
 
-    private void NewBornPhase(IMessage message)
+    private void NewBornPhase(object message)
     {
         switch (message)
         {
@@ -21,15 +29,15 @@ public class LifeCycleActor : ReceiveActor
             case PlayWithToys playWithToys:
                 Console.WriteLine("Playing with Toys");
                 break;
-            case ChangeLifePhase phase:
-                Become(() => ChildPhase(message));
+            case ChangeLifePhase _:
+                Become(ChildPhase);
                 break;
             default:
                 Console.WriteLine("Cannot perfrom this task at this moment");
                 break;
         }
     }
-    private void ChildPhase(IMessage message)
+    private void ChildPhase(object message)
     {
         switch (message)
         {
@@ -40,14 +48,14 @@ public class LifeCycleActor : ReceiveActor
                 Console.WriteLine("Going to school");
                 break;
             case ChangeLifePhase _:
-                Become(() => TeenPhase(message));
+                Become(TeenPhase);
                 break;
             default:
                 Console.WriteLine("Cannot perfrom this task at this moment");
                 break;
         }
     }
-    private void TeenPhase(IMessage message)
+    private void TeenPhase(object message)
     {
         switch (message)
         {
@@ -58,14 +66,14 @@ public class LifeCycleActor : ReceiveActor
                 Console.WriteLine("Going out with friends");
                 break;
             case ChangeLifePhase _:
-                Become(() => YoungPhase(message));
+                Become(YoungPhase);
                 break;
             default:
                 Console.WriteLine("Cannot perfrom this task at this moment");
                 break;
         }
     }
-    private void YoungPhase(IMessage message)
+    private void YoungPhase(object message)
     {
         switch (message)
         {
@@ -76,14 +84,14 @@ public class LifeCycleActor : ReceiveActor
                 Console.WriteLine("Drinking beer");
                 break;
             case ChangeLifePhase _:
-                Become(() => AdultPhase(message));
+                Become(AdultPhase);
                 break;
             default:
                 Console.WriteLine("Cannot perfrom this task at this moment");
                 break;
         }
     }
-    private void AdultPhase(IMessage message)
+    private void AdultPhase(object message)
     {
         switch (message)
         {
@@ -97,14 +105,14 @@ public class LifeCycleActor : ReceiveActor
                 Console.WriteLine("Having kids");
                 break;
             case ChangeLifePhase _:
-                Become(() => ElderlyPhase(message));
+                Become(ElderlyPhase);
                 break;
             default:
                 Console.WriteLine("Cannot perfrom this task at this moment");
                 break;
         }
     }
-    private void ElderlyPhase(IMessage message)
+    private void ElderlyPhase(object message)
     {
         switch (message)
         {
@@ -118,16 +126,22 @@ public class LifeCycleActor : ReceiveActor
                 Console.WriteLine("Dead");
                 break;
             case ChangeLifePhase _:
-                Become(() => StopLifeCycle());
+                _scheduledTask.Cancel();
+                Become(Stopped);
                 break;
             default:
                 Console.WriteLine("Cannot perfrom this task at this moment");
                 break;
         }
     }
-    private void StopLifeCycle()
+
+    private void Stopped(object message)
     {
-        Console.WriteLine("Human Life cycle has been completed");
-        Context.Stop(Self);
+        switch (message)
+        {
+            case IMessage _:
+                Console.WriteLine("The human life cycle is completed it cannot perforn any activity now please press -1 to exit");
+                break;
+        }
     }
 }
